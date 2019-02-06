@@ -177,6 +177,7 @@ void eval(char *cmdline)
 		if ((pid = fork()) == 0) {   /* Child runs user job */
 			if (execve(argv[0], argv, environ) < 0) {
 				printf("%s: Command not found.\n", argv[0]);
+				fflush(stdout);
 				exit(0);
 			}
 		}
@@ -262,7 +263,7 @@ int builtin_cmd(char **argv)
 		return 1;
 	}
 	if(!strcmp("jobs", cmd)){
-		listjobs();
+		listjobs(jobs);
 	}
 	if(!(strcmp("bg", cmd)&&(strcmp("fg",cmd)))){
 		do_bgfg(argv);
@@ -277,6 +278,47 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
+	int tjid;
+	pid_t tpid;
+	/*Error_handling*/
+	if(argv[1] == NULL){     // ERROR CHECK if job doesn't decleared job's pid
+		printf("No Commands Written.\n");
+		return;				
+	}
+	if((argv[1][0] != '%') || (argv[1][0] > '9') || (argv[1][0] < '0') ){
+		printf("Out of bound.\n");
+		return;
+	}
+	else{
+		if(argv[1][0] == '%'){
+			tjid = atoi(argv[1][1]);
+			tpid = getjobpid(jobs,tjid)->pid;
+
+		}
+		else{
+			char* tpid_ptr;
+			int i, num;
+			tpid_ptr = (char*)malloc(strlen(argv[1] * sizeof(char)));
+			num = strlen(argv[1]);
+			
+			for(i = 0 ; i < num; ++i){
+				tpid_ptr[i] = argv[1][i];
+			}
+			
+			tpid_ptr[num] ='\n';
+			tpid = (pid_t)atoi(tpid_ptr);
+			tjid = getjobjid(jobs,tpid) -> jid;
+		}
+	}
+	/* bg */
+	if(!strcmp(argv[0], "bg")){
+		jobs[jid]	
+	}
+	else{
+	
+	}
+		
+	
 
     return;
 }
@@ -477,7 +519,7 @@ void listjobs(struct job_t *jobs)
 	    }
 	    printf("%s", jobs[i].cmdline);
 	}
-    }
+    
 }
 /******************************
  * end job list helper routines
