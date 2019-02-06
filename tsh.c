@@ -173,8 +173,8 @@ void eval(char *cmdline)
 	bg = parseline(buf, argv);
 	if (argv[0] == NULL)
 		return;   /* Ignore empty lines */
-	if (!builtin_command(argv)) {
-		if ((pid = Fork()) == 0) {   /* Child runs user job */
+	if (!builtin_cmd(argv)) {
+		if ((pid = fork()) == 0) {   /* Child runs user job */
 			if (execve(argv[0], argv, environ) < 0) {
 				printf("%s: Command not found.\n", argv[0]);
 				exit(0);
@@ -255,7 +255,21 @@ int parseline(const char *cmdline, char **argv)
  */
 int builtin_cmd(char **argv) 
 {
-    return 0;     /* not a builtin command */
+    char* cmd = argv[0];
+	if(!strcmp("quit",cmd))
+	{
+		exit(0);
+		return 1;
+	}
+	if(!strcmp("jobs", cmd)){
+		listjobs();
+	}
+	if(!(strcmp("bg", cmd)&&(strcmp("fg",cmd)))){
+		do_bgfg(argv);
+		return 1;
+	}
+	else
+		return 0;     /* not a builtin command */
 }
 
 /* 
@@ -263,6 +277,7 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
+
     return;
 }
 
