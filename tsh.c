@@ -171,24 +171,28 @@ void eval(char *cmdline)
 	pid_t pid;           /* Process id */
 	strcpy(buf, cmdline);
 	bg = parseline(buf, argv);
+//	printf("how many times i reach here?\n");
 	if (argv[0] == NULL)
 		return;   /* Ignore empty lines */
 	if (!builtin_cmd(argv)) {
 		if ((pid = fork()) == 0) {   /* Child runs user job */
+			printf("how many times in here?\n");
+			fflush(stdout);
 			if (execve(argv[0], argv, environ) < 0) {
 				printf("%s: Command not found.\n", argv[0]);
 				fflush(stdout);
 				exit(0);
 			}
 		}
+		if(pid != 0)addjob(jobs,pid,bg,cmdline);	
 		/* Parent waits for foreground job to terminate */
-		if (!bg) {
+		if (!bg) {	
 			int status;
 			if (waitpid(pid, &status, 0) < 0)
 				unix_error("waitfg: waitpid error");
 		}
 		else
-			printf("%d %s", pid, cmdline);
+			printf("[%d] (%d) %s",pid2jid(pid), pid, cmdline);
 	}
 	return;
 }
@@ -291,14 +295,14 @@ void do_bgfg(char **argv)
 	}
 	else{
 		if(argv[1][0] == '%'){
-			tjid = atoi(argv[1][1]);
+			tjid = atoi(argv[1] + 1);
 			tpid = getjobpid(jobs,tjid)->pid;
 
 		}
 		else{
 			char* tpid_ptr;
 			int i, num;
-			tpid_ptr = (char*)malloc(strlen(argv[1] * sizeof(char)));
+			tpid_ptr = (char*)malloc(strlen(argv[1]) * sizeof(char));
 			num = strlen(argv[1]);
 			
 			for(i = 0 ; i < num; ++i){
@@ -312,15 +316,25 @@ void do_bgfg(char **argv)
 	}
 	/* bg */
 	if(!strcmp(argv[0], "bg")){
-		jobs[jid]	
+		if(kill(tpid, SIGCONT) < 0 ){
+			printf("SIGCONT ERROR IN BG!\n");
+			return;
+		}
+		jobs[tjid - 1].state = BG;
 	}
+	/* fg */
 	else{
-	
+		if(kill(tpid, SIGCONT) < 0){
+			printf("SIGCONT ERROR IN FG!\n");
+			return;
+		}
+		jobs[tjid - 1].state = FG;
 	}
 		
 	
+	
 
-    return;
+   return;
 }
 
 /* 
@@ -405,7 +419,8 @@ int maxjid(struct job_t *jobs)
 /* addjob - Add a job to the job list */
 int addjob(struct job_t *jobs, pid_t pid, int state, char *cmdline) 
 {
-    int i;
+   	printf("i was here in %d\n",pid);
+	int i;
     
     if (pid < 1)
 	return 0;
@@ -484,7 +499,8 @@ struct job_t *getjobjid(struct job_t *jobs, int jid)
 /* pid2jid - Map process ID to job ID */
 int pid2jid(pid_t pid) 
 {
-    int i;
+//   	printf("%d",jobs[0].pid);
+	int i;
 
     if (pid < 1)
 	return 0;
@@ -516,8 +532,9 @@ void listjobs(struct job_t *jobs)
 	    default:
 		    printf("listjobs: Internal error: job[%d].state=%d ", 
 			   i, jobs[i].state);
-	    }
+	    	}
 	    printf("%s", jobs[i].cmdline);
+		}
 	}
     
 }
